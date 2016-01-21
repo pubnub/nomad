@@ -87,6 +87,11 @@ func (d *AllocDir) Build(tasks []*structs.Task) error {
 			return err
 		}
 
+		logDir := filepath.Join(d.SharedDir, "logs", t.Name)
+		if err := os.Mkdir(logDir, 0777); err != nil {
+			return err
+		}
+
 		// Make the task directory have non-root permissions.
 		if err := d.dropDirPermissions(taskDir); err != nil {
 			return err
