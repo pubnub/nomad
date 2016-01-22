@@ -47,6 +47,10 @@ job "binstore-storagelocker" {
               HELLO = "world"
               LOREM = "ipsum"
             }
+            logs {
+                max_files = 10
+                max_file_size = 100
+            }
             service {
                 tags = ["foo", "bar"]
                 port = "http"

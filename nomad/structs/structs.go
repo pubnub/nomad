@@ -1321,6 +1321,12 @@ func (s *Service) Hash() string {
 	return fmt.Sprintf("%x", h.Sum(nil))
 }
 
+// LogConfig describes the log rotation policy for a Task
+type LogConfig struct {
+	MaxFiles    int   `mapstructure:"max_files"`     // Maximum number of rotated files to retain
+	MaxFileSize int64 `mapstructure:"max_file_size"` // Maximun file size of each rotated file
+}
+
 const (
 	// DefaultKillTimeout is the default timeout between signaling a task it
 	// will be killed and killing it.
@@ -1358,6 +1364,9 @@ type Task struct {
 	// KillTimeout is the time between signaling a task that it will be
 	// killed and killing it.
 	KillTimeout time.Duration `mapstructure:"kill_timeout"`
+
+	// LogConfig describes the log retention policy for the task
+	LogConfig *LogConfig
 }
 
 // InitFields initializes fields in the task.

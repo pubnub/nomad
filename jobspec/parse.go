@@ -401,6 +401,7 @@ func parseTasks(jobName string, taskGroupName string, result *[]*structs.Task, l
 		delete(m, "service")
 		delete(m, "meta")
 		delete(m, "resources")
+		delete(m, "logs")
 
 		// Build the task
 		var t structs.Task
@@ -471,6 +472,16 @@ func parseTasks(jobName string, taskGroupName string, result *[]*structs.Task, l
 				if err := mapstructure.WeakDecode(m, &t.Meta); err != nil {
 					return err
 				}
+			}
+		}
+
+		if logs := listVal.Filter("logs"); len(logs.Items) > 0 {
+			var m map[string]interface{}
+			if err := hcl.DecodeObject(&m, logs.Items[0].Val); err != nil {
+				return err
+			}
+			if err := mapstructure.WeakDecode(m, &t.LogConfig); err != nil {
+				return err
 			}
 		}
 
@@ -718,5 +729,24 @@ func parsePeriodic(result **structs.PeriodicConfig, list *ast.ObjectList) error 
 		return err
 	}
 	*result = &p
+	return nil
+}
+
+func parseLogConfig(lc *structs.LogConfig, list *ast.ObjectList) error {
+	list = list.Elem()
+	if len(list.Items) > 1 {
+		return fmt.Errorf("only one 'logs' block allowed in a block")
+	}
+
+	o := list.Items[0]
+
+	var m map[string]interface{}
+	if err := hcl.DecodeObject(&m, o.Val); err != nil {
+		return err
+	}
+
+	if err := mapstructure.WeakDecode(m, lc); err != nil {
+		return err
+	}
 	return nil
 }

@@ -91,6 +91,10 @@ func TestParse(t *testing.T) {
 								Config: map[string]interface{}{
 									"image": "hashicorp/binstore",
 								},
+								LogConfig: &structs.LogConfig{
+									MaxFileSize: 100,
+									MaxFiles:    10,
+								},
 								Services: []*structs.Service{
 									{
 										Name:      "binstore-storagelocker-binsl-binstore",
