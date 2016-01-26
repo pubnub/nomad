@@ -4,6 +4,12 @@ import (
 	"time"
 )
 
+// LogConfig describes the log rotation policy for a Task
+type LogConfig struct {
+	MaxFiles    int   // Maximum number of rotated files to retain
+	MaxFileSize int64 // Maximun file size of each rotated file
+}
+
 // RestartPolicy defines how the Nomad client restarts
 // tasks in a taskgroup when they fail
 type RestartPolicy struct {
@@ -86,6 +92,7 @@ type Task struct {
 	Resources   *Resources
 	Meta        map[string]string
 	KillTimeout time.Duration
+	LogConfig   *LogConfig
 }
 
 // NewTask creates and initializes a new Task.
