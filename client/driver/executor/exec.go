@@ -80,13 +80,15 @@ type Executor interface {
 // node attributes into a Driver without having to change the Driver interface
 // each time we do it. Used in conjection with Factory, above.
 type ExecutorContext struct {
-	taskEnv *env.TaskEnvironment
+	taskEnv   *env.TaskEnvironment
+	logConfig *structs.LogConfig
 }
 
 // NewExecutorContext initializes a new DriverContext with the specified fields.
-func NewExecutorContext(taskEnv *env.TaskEnvironment) *ExecutorContext {
+func NewExecutorContext(taskEnv *env.TaskEnvironment, logConfig *structs.LogConfig) *ExecutorContext {
 	return &ExecutorContext{
-		taskEnv: taskEnv,
+		taskEnv:   taskEnv,
+		logConfig: logConfig,
 	}
 }
 

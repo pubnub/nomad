@@ -26,15 +26,16 @@ type Spawner struct {
 	UserPid   int
 
 	// User configuration
-	UserCmd *exec.Cmd
-	Logs    *Logs
-	Chroot  string
+	UserCmd   *exec.Cmd
+	Chroot    string
+	LogConfig *LogConfig
 }
 
-// Logs is used to define the filepaths the user command's logs should be
-// redirected to. The files do not need to exist.
-type Logs struct {
-	Stdin, Stdout, Stderr string
+type LogConfig struct {
+	MaxFiles    int
+	MaxFileSize int64
+	Path        string
+	TaskName    string
 }
 
 // NewSpawner takes a path to a state file. This state file can be used to
@@ -50,8 +51,8 @@ func (s *Spawner) SetCommand(cmd *exec.Cmd) {
 }
 
 // SetLogs sets the redirection of user command log files.
-func (s *Spawner) SetLogs(l *Logs) {
-	s.Logs = l
+func (s *Spawner) SetLogs(lc *LogConfig) {
+	s.LogConfig = lc
 }
 
 // SetChroot puts the user command into a chroot.
@@ -162,12 +163,10 @@ func (s *Spawner) spawnConfig() (string, error) {
 		Cmd:            *s.UserCmd,
 		Chroot:         s.Chroot,
 		ExitStatusFile: s.StateFile,
-	}
-
-	if s.Logs != nil {
-		config.StdoutFile = s.Logs.Stdout
-		config.StdinFile = s.Logs.Stdin
-		config.StderrFile = s.Logs.Stderr
+		MaxLogFiles:    s.LogConfig.MaxFiles,
+		MaxLogFileSize: s.LogConfig.MaxFileSize,
+		LogPath:        s.LogConfig.Path,
+		TaskName:       s.LogConfig.TaskName,
 	}
 
 	var buffer bytes.Buffer

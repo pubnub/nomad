@@ -48,6 +48,22 @@ func NewLinuxExecutor(ctx *ExecutorContext) Executor {
 	return &LinuxExecutor{ExecutorContext: ctx}
 }
 
+func Open(id string) (Executor, error) {
+	e := &LinuxExecutor{}
+	// De-serialize the ID.
+	dec := json.NewDecoder(strings.NewReader(id))
+	var execID ExecLinuxID
+	if err := dec.Decode(&execID); err != nil {
+		return nil, fmt.Errorf("Failed to parse id: %v", err)
+	}
+
+	// Setup the executor.
+	e.groups = execID.Groups
+	e.spawn = execID.Spawn
+	e.taskDir = execID.TaskDir
+	return e, e.spawn.Valid()
+}
+
 // Linux executor is designed to run on linux kernel 2.8+.
 type LinuxExecutor struct {
 	*ExecutorContext
@@ -168,10 +184,11 @@ func (e *LinuxExecutor) Start() error {
 	e.spawn = spawn.NewSpawner(spawnState)
 	e.spawn.SetCommand(&e.cmd)
 	e.spawn.SetChroot(e.taskDir)
-	e.spawn.SetLogs(&spawn.Logs{
-		Stdout: filepath.Join(e.taskDir, allocdir.TaskLocal, fmt.Sprintf("%v.stdout", e.taskName)),
-		Stderr: filepath.Join(e.taskDir, allocdir.TaskLocal, fmt.Sprintf("%v.stderr", e.taskName)),
-		Stdin:  os.DevNull,
+	e.spawn.SetLogs(&spawn.LogConfig{
+		MaxFiles:    e.logConfig.MaxFiles,
+		MaxFileSize: e.logConfig.MaxFileSize,
+		TaskName:    e.taskName,
+		Path:        allocdir.LogDirForTask(e.taskName, e.allocDir),
 	})
 
 	enterCgroup := func(pid int) error {

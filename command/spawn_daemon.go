@@ -4,17 +4,27 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"os/exec"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
+
+	"github.com/hashicorp/nomad/client/logrotate"
 )
 
 type SpawnDaemonCommand struct {
 	Meta
-	config   *DaemonConfig
-	exitFile io.WriteCloser
+	config      *DaemonConfig
+	lro         *logrotate.LogRotator
+	lre         *logrotate.LogRotator
+	exitFile    io.WriteCloser
+	destroyed   bool
+	destroyLock sync.Mutex
+
+	logger *log.Logger
 }
 
 func (c *SpawnDaemonCommand) Help() string {
@@ -65,12 +75,17 @@ type DaemonConfig struct {
 
 	// The paths, if not /dev/null, must be either in the tasks root directory
 	// or in the shared alloc directory.
-	StdoutFile string
-	StdinFile  string
-	StderrFile string
+	StdinFile string
+
+	MaxLogFiles    int
+	MaxLogFileSize int64
+	LogPath        string
+	TaskName       string
 
 	// An optional path specifying the directory to chroot the process in.
 	Chroot string
+
+	SpawnLogFile string
 }
 
 // Whether to start the user command or abort.
@@ -108,22 +123,19 @@ func (c *SpawnDaemonCommand) parseConfig(args []string) (*DaemonConfig, error) {
 // configureLogs creates the log files and redirects the process
 // stdin/stderr/stdout to them. If unsuccessful, an error is returned.
 func (c *SpawnDaemonCommand) configureLogs() error {
-	if len(c.config.StdoutFile) != 0 {
-		stdo, err := os.OpenFile(c.config.StdoutFile, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0666)
-		if err != nil {
-			return fmt.Errorf("Error opening file to redirect stdout: %v", err)
-		}
-
-		c.config.Cmd.Stdout = stdo
+	lro, err := logrotate.NewLogRotator(c.config.LogPath, c.config.TaskName, c.config.MaxLogFiles,
+		c.config.MaxLogFileSize, log.New(os.Stdout, "spawn-daemon", log.LstdFlags))
+	if err != nil {
+		return fmt.Errorf("error creating log rotator: %v", err)
 	}
+	c.lro = lro
 
-	if len(c.config.StderrFile) != 0 {
-		stde, err := os.OpenFile(c.config.StderrFile, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0666)
-		if err != nil {
-			return fmt.Errorf("Error opening file to redirect stderr: %v", err)
-		}
-		c.config.Cmd.Stderr = stde
+	lre, err := logrotate.NewLogRotator(c.config.LogPath, c.config.TaskName, c.config.MaxLogFiles,
+		c.config.MaxLogFileSize, log.New(os.Stdout, "spawn-daemon", log.LstdFlags))
+	if err != nil {
+		return fmt.Errorf("error creating log rotator: %v", err)
 	}
+	c.lre = lre
 
 	if len(c.config.StdinFile) != 0 {
 		stdi, err := os.OpenFile(c.config.StdinFile, os.O_CREATE|os.O_RDONLY, 0666)
@@ -160,6 +172,9 @@ func (c *SpawnDaemonCommand) Run(args []string) int {
 	if err := c.configureLogs(); err != nil {
 		return c.outputStartStatus(err, 1)
 	}
+
+	// Start the log rotator
+	c.handleLogs()
 
 	// Chroot jail the process and set its working directory.
 	c.configureChroot()
@@ -211,6 +226,9 @@ func (c *SpawnDaemonCommand) outputStartStatus(err error, status int) int {
 // the exit status to a file. It returns the same exit status as the user
 // command.
 func (c *SpawnDaemonCommand) writeExitStatus(exit error) int {
+	c.destroyLock.Lock()
+	c.destroyed = true
+	c.destroyLock.Unlock()
 	// Parse the exit code.
 	exitStatus := &SpawnExitStatus{}
 	if exit != nil {
@@ -231,4 +249,22 @@ func (c *SpawnDaemonCommand) writeExitStatus(exit error) int {
 	}
 
 	return exitStatus.ExitCode
+}
+
+func (c *SpawnDaemonCommand) handleLogs() {
+	go func() {
+		r, w := io.Pipe()
+		c.config.Cmd.Stdout = w
+		if err := c.lro.Start(r); err != nil {
+			c.logger.Printf("error in writing logs: %v", err)
+		}
+	}()
+
+	go func() {
+		r, w := io.Pipe()
+		c.config.Cmd.Stderr = w
+		if err := c.lre.Start(r); err != nil {
+			c.logger.Printf("error in writing logs: %v", err)
+		}
+	}()
 }

@@ -44,6 +44,10 @@ func NewAllocDir(allocDir string) *AllocDir {
 	return d
 }
 
+func LogDirForTask(taskName string, allocDir string) string {
+	return filepath.Join(allocDir, SharedAllocName, "logs", taskName)
+}
+
 // Tears down previously build directory structure.
 func (d *AllocDir) Destroy() error {
 	// Unmount all mounted shared alloc dirs.

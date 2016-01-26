@@ -137,6 +137,11 @@ job "example" {
 				}
 			}
 
+			logs {
+				max_files = 10
+				max_size = 100
+			}
+
 			service {
 				name = "${TASKGROUP}-redis"
 				tags = ["global", "cache"]

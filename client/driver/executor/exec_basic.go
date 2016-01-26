@@ -32,6 +32,19 @@ func NewBasicExecutor(ctx *ExecutorContext) Executor {
 	return &BasicExecutor{ExecutorContext: ctx}
 }
 
+func OpenBasicExecutor(id string) (Executor, error) {
+	e := BasicExecutor{}
+	var spawn spawn.Spawner
+	dec := json.NewDecoder(strings.NewReader(id))
+	if err := dec.Decode(&spawn); err != nil {
+		return nil, fmt.Errorf("Failed to parse id: %v", err)
+	}
+
+	// Setup the executor.
+	e.spawn = &spawn
+	return &e, e.spawn.Valid()
+}
+
 func (e *BasicExecutor) Limit(resources *structs.Resources) error {
 	if resources == nil {
 		return errNoResources
@@ -61,10 +74,11 @@ func (e *BasicExecutor) Start() error {
 	spawnState := filepath.Join(e.allocDir, fmt.Sprintf("%s_%s", e.taskName, "exit_status"))
 	e.spawn = spawn.NewSpawner(spawnState)
 	e.spawn.SetCommand(&e.cmd)
-	e.spawn.SetLogs(&spawn.Logs{
-		Stdout: filepath.Join(e.taskDir, allocdir.TaskLocal, fmt.Sprintf("%v.stdout", e.taskName)),
-		Stderr: filepath.Join(e.taskDir, allocdir.TaskLocal, fmt.Sprintf("%v.stderr", e.taskName)),
-		Stdin:  os.DevNull,
+	e.spawn.SetLogs(&spawn.LogConfig{
+		MaxFiles:    e.logConfig.MaxFiles,
+		MaxFileSize: e.logConfig.MaxFileSize,
+		TaskName:    e.taskName,
+		Path:        allocdir.LogDirForTask(e.taskName, e.allocDir),
 	})
 
 	return e.spawn.Spawn(nil)

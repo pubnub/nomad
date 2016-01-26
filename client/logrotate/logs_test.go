@@ -1,4 +1,4 @@
-package driver
+package logrotate
 
 import (
 	"io"

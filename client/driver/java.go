@@ -140,7 +140,7 @@ func (d *JavaDriver) Start(ctx *ExecContext, task *structs.Task) (DriverHandle, 
 
 	// Setup the command
 	// Assumes Java is in the $PATH, but could probably be detected
-	execCtx := executor.NewExecutorContext(d.taskEnv)
+	execCtx := executor.NewExecutorContext(d.taskEnv, task.LogConfig)
 	cmd := executor.Command(execCtx, "java", args...)
 
 	// Populate environment variables
@@ -183,8 +183,7 @@ func (d *JavaDriver) Open(ctx *ExecContext, handleID string) (DriverHandle, erro
 	}
 
 	// Find the process
-	execCtx := executor.NewExecutorContext(d.taskEnv)
-	cmd, err := executor.OpenId(execCtx, id.ExecutorId)
+	cmd, err := executor.Open(id.ExecutorId)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open ID %v: %v", id.ExecutorId, err)
 	}

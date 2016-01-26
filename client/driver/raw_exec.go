@@ -91,7 +91,7 @@ func (d *RawExecDriver) Start(ctx *ExecContext, task *structs.Task) (DriverHandl
 	}
 
 	// Setup the command
-	execCtx := executor.NewExecutorContext(d.taskEnv)
+	execCtx := executor.NewExecutorContext(d.taskEnv, task.LogConfig)
 	cmd := executor.NewBasicExecutor(execCtx)
 	executor.SetCommand(cmd, command, driverConfig.Args)
 	if err := cmd.Limit(task.Resources); err != nil {
@@ -133,8 +133,10 @@ func (d *RawExecDriver) Open(ctx *ExecContext, handleID string) (DriverHandle, e
 	}
 
 	// Find the process
-	execCtx := executor.NewExecutorContext(d.taskEnv)
-	cmd := executor.NewBasicExecutor(execCtx)
+	cmd, err := executor.Open(id.ExecutorId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create executor: %v", err)
+	}
 	if err := cmd.Open(id.ExecutorId); err != nil {
 		return nil, fmt.Errorf("failed to open ID %v: %v", id.ExecutorId, err)
 	}

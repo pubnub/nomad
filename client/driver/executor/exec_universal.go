@@ -12,3 +12,7 @@ func NewExecutor(ctx *ExecutorContext) Executor {
 type UniversalExecutor struct {
 	*BasicExecutor
 }
+
+func (e *UniversalExecutor) Open(id string) (Executor, error) {
+	return OpenBasicExecutor(id)
+}

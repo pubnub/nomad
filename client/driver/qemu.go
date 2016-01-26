@@ -184,7 +184,7 @@ func (d *QemuDriver) Start(ctx *ExecContext, task *structs.Task) (DriverHandle, 
 	}
 
 	// Setup the command
-	execCtx := executor.NewExecutorContext(d.taskEnv)
+	execCtx := executor.NewExecutorContext(d.taskEnv, task.LogConfig)
 	cmd := executor.Command(execCtx, args[0], args[1:]...)
 	if err := cmd.Limit(task.Resources); err != nil {
 		return nil, fmt.Errorf("failed to constrain resources: %s", err)
@@ -225,8 +225,7 @@ func (d *QemuDriver) Open(ctx *ExecContext, handleID string) (DriverHandle, erro
 	}
 
 	// Find the process
-	execCtx := executor.NewExecutorContext(d.taskEnv)
-	cmd, err := executor.OpenId(execCtx, id.ExecutorId)
+	cmd, err := executor.Open(id.ExecutorId)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open ID %v: %v", id.ExecutorId, err)
 	}
