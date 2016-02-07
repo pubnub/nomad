@@ -153,6 +153,7 @@ type Job struct {
 	StatusDescription string
 	CreateIndex       uint64
 	ModifyIndex       uint64
+	SubmitTime        int64
 }
 
 // JobListStub is used to return a subset of information about

@@ -883,6 +883,10 @@ type Job struct {
 	CreateIndex    uint64
 	ModifyIndex    uint64
 	JobModifyIndex uint64
+
+	// SubmitTime is the Unix nano-second time marking when the job first hit
+	// the Job Register endpoint.
+	SubmitTime int64
 }
 
 // InitFields is used to initialize fields in the Job. This should be called
@@ -1765,6 +1769,11 @@ type Allocation struct {
 	// AllocModifyIndex is not updated when the client updates allocations. This
 	// lets the client pull only the allocs updated by the server.
 	AllocModifyIndex uint64
+
+	// CreateTime is a Unix nano-second timestamp, marking the time the
+	// allocation was first stored in the state-store. This occurs after
+	// scheduling and being commited to the Raft log.
+	CreateTime int64
 }
 
 func (a *Allocation) Copy() *Allocation {

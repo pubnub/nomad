@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"sync"
+	"time"
 
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/nomad/nomad/structs"
@@ -782,6 +783,9 @@ func (s *StateStore) UpsertAllocs(index uint64, allocs []*structs.Allocation) er
 	watcher := watch.NewItems()
 	watcher.Add(watch.Item{Table: "allocs"})
 
+	// Store the current time to annotate  newly created allocations.
+	now := time.Now().UnixNano()
+
 	// Handle the allocations
 	jobs := make(map[string]string, 1)
 	for _, alloc := range allocs {
@@ -794,6 +798,7 @@ func (s *StateStore) UpsertAllocs(index uint64, allocs []*structs.Allocation) er
 			alloc.CreateIndex = index
 			alloc.ModifyIndex = index
 			alloc.AllocModifyIndex = index
+			alloc.CreateTime = now
 		} else {
 			exist := existing.(*structs.Allocation)
 			alloc.CreateIndex = exist.CreateIndex

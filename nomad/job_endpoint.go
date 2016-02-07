@@ -43,6 +43,9 @@ func (j *Job) Register(args *structs.JobRegisterRequest, reply *structs.JobRegis
 		return fmt.Errorf("job type cannot be core")
 	}
 
+	// Mark the submission time.
+	args.Job.SubmitTime = time.Now().UnixNano()
+
 	// Commit this update via Raft
 	_, index, err := j.srv.raftApply(structs.JobRegisterRequestType, args)
 	if err != nil {
