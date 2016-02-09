@@ -85,11 +85,6 @@ func (f *EnvAWSFingerprint) Fingerprint(cfg *config.Config, node *structs.Node) 
 		return false, nil
 	}
 
-	// newNetwork is populated and addded to the Nodes resources
-	newNetwork := &structs.NetworkResource{
-		Device: "eth0",
-	}
-
 	if node.Links == nil {
 		node.Links = make(map[string]string)
 	}
@@ -147,25 +142,6 @@ func (f *EnvAWSFingerprint) Fingerprint(cfg *config.Config, node *structs.Node) 
 
 		node.Attributes[key] = strings.Trim(string(resp), "\n")
 	}
-
-	// copy over network specific information
-	if val := node.Attributes["unique.platform.aws.local-ipv4"]; val != "" {
-		node.Attributes["unique.network.ip-address"] = val
-		newNetwork.IP = val
-		newNetwork.CIDR = newNetwork.IP + "/32"
-	}
-
-	// find LinkSpeed from lookup
-	if throughput := f.linkSpeed(); throughput > 0 {
-		newNetwork.MBits = throughput
-	}
-
-	if node.Resources == nil {
-		node.Resources = &structs.Resources{}
-	}
-	node.Resources.Networks = append(node.Resources.Networks, newNetwork)
-
-	// populate Node Network Resources
 
 	// populate Links
 	node.Links["aws.ec2"] = fmt.Sprintf("%s.%s",
