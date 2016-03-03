@@ -87,6 +87,7 @@ type DockerHandle struct {
 	logCollector     logging.LogCollector
 	client           *docker.Client
 	logger           *log.Logger
+	checks           map[string]Check
 	cleanupContainer bool
 	cleanupImage     bool
 	imageID          string
@@ -696,6 +697,15 @@ func (h *DockerHandle) ID() string {
 
 func (h *DockerHandle) ContainerID() string {
 	return h.containerID
+}
+
+// RunCheck runs a check with a specific ID and returns the check result
+func (h *DockerHandle) RunCheck(checkID string) (*CheckResult, error) {
+	ch, ok := h.checks[checkID]
+	if !ok {
+		return nil, fmt.Errorf("error retreiving check with ID: %v", checkID)
+	}
+	return ch.Run()
 }
 
 func (h *DockerHandle) WaitCh() chan *cstructs.WaitResult {

@@ -39,6 +39,7 @@ type execHandle struct {
 	pluginClient    *plugin.Client
 	executor        executor.Executor
 	isolationConfig *cstructs.IsolationConfig
+	checks          map[string]Check
 	userPid         int
 	allocDir        *allocdir.AllocDir
 	killTimeout     time.Duration
@@ -256,6 +257,15 @@ func (h *execHandle) Kill() error {
 
 		return nil
 	}
+}
+
+// RunCheck runs a check with a specific ID and returns the check result
+func (h *execHandle) RunCheck(checkID string) (*CheckResult, error) {
+	ch, ok := h.checks[checkID]
+	if !ok {
+		return nil, fmt.Errorf("error retreiving check with ID: %v", checkID)
+	}
+	return ch.Run()
 }
 
 func (h *execHandle) run() {

@@ -55,6 +55,7 @@ type RktDriverConfig struct {
 type rktHandle struct {
 	proc        *os.Process
 	image       string
+	checks      map[string]Check
 	logger      *log.Logger
 	killTimeout time.Duration
 	waitCh      chan *cstructs.WaitResult
@@ -271,6 +272,15 @@ func (h *rktHandle) ID() string {
 		h.logger.Printf("[ERR] driver.rkt: failed to marshal rkt PID to JSON: %s", err)
 	}
 	return fmt.Sprintf("Rkt:%s", string(data))
+}
+
+// RunCheck runs a check with a specific ID and returns the check result
+func (h *rktHandle) RunCheck(checkID string) (*CheckResult, error) {
+	ch, ok := h.checks[checkID]
+	if !ok {
+		return nil, fmt.Errorf("error retreiving check with ID: %v", checkID)
+	}
+	return ch.Run()
 }
 
 func (h *rktHandle) WaitCh() chan *cstructs.WaitResult {

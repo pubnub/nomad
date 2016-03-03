@@ -102,6 +102,17 @@ func (d *DriverContext) KillTimeout(task *structs.Task) time.Duration {
 	return d.config.MaxKillTimeout
 }
 
+// CheckResult encapsulates the result of a check
+type CheckResult struct {
+	ExitCode  int // ExitCode is the exit code of the check
+	Output    string
+	Timestamp time.Time
+}
+
+type Check interface {
+	Run() (*CheckResult, error)
+}
+
 // DriverHandle is an opaque handle into a driver used for task
 // manipulation
 type DriverHandle interface {
@@ -117,6 +128,9 @@ type DriverHandle interface {
 
 	// Kill is used to stop the task
 	Kill() error
+
+	// RunCheck runs a check and returns the result
+	RunCheck(checkID string) (*CheckResult, error)
 }
 
 // ExecContext is shared between drivers within an allocation

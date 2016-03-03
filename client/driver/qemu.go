@@ -47,6 +47,7 @@ type qemuHandle struct {
 	pluginClient *plugin.Client
 	userPid      int
 	executor     executor.Executor
+	checks       map[string]Check
 	allocDir     *allocdir.AllocDir
 	killTimeout  time.Duration
 	logger       *log.Logger
@@ -330,6 +331,15 @@ func (h *qemuHandle) Kill() error {
 
 		return nil
 	}
+}
+
+// RunCheck runs a check with a specific ID and returns the check result
+func (h *qemuHandle) RunCheck(checkID string) (*CheckResult, error) {
+	ch, ok := h.checks[checkID]
+	if !ok {
+		return nil, fmt.Errorf("error retreiving check with ID: %v", checkID)
+	}
+	return ch.Run()
 }
 
 func (h *qemuHandle) run() {
