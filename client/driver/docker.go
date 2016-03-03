@@ -18,6 +18,7 @@ import (
 
 	"github.com/hashicorp/go-plugin"
 
+	"github.com/armon/circbuf"
 	"github.com/hashicorp/nomad/client/allocdir"
 	"github.com/hashicorp/nomad/client/config"
 	"github.com/hashicorp/nomad/client/driver/logging"
@@ -96,6 +97,53 @@ type DockerHandle struct {
 	killTimeout      time.Duration
 	waitCh           chan *cstructs.WaitResult
 	doneCh           chan struct{}
+}
+
+type DockerScriptCheck struct {
+	Script []string
+
+	dockerClient *docker.Client
+	containerID  string
+}
+
+func (d *DockerScriptCheck) Run() (*CheckResult, error) {
+	execOpts := docker.CreateExecOptions{
+		AttachStdin:  false,
+		AttachStdout: true,
+		AttachStderr: true,
+		Tty:          false,
+		Cmd:          d.Script,
+		Container:    d.containerID,
+	}
+	var (
+		exec    *docker.Exec
+		err     error
+		execRes *docker.ExecInspect
+		time    = time.Now()
+	)
+	if exec, err = d.dockerClient.CreateExec(execOpts); err != nil {
+		return nil, err
+	}
+
+	output, _ := circbuf.NewBuffer(int64(CheckBufSize))
+	startOpts := docker.StartExecOptions{
+		Detach:       false,
+		Tty:          false,
+		OutputStream: output,
+		ErrorStream:  output,
+	}
+
+	if err = d.dockerClient.StartExec(exec.ID, startOpts); err != nil {
+		return nil, err
+	}
+	if execRes, err = d.dockerClient.InspectExec(exec.ID); err != nil {
+		return nil, err
+	}
+	return &CheckResult{
+		ExitCode:  execRes.ExitCode,
+		Output:    string(output.Bytes()),
+		Timestamp: time,
+	}, nil
 }
 
 func NewDockerDriver(ctx *DriverContext) Driver {

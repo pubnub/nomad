@@ -102,6 +102,9 @@ func (d *DriverContext) KillTimeout(task *structs.Task) time.Duration {
 	return d.config.MaxKillTimeout
 }
 
+// CheckBufSize is the size of the check output result
+var CheckBufSize = 4 * 1024
+
 // CheckResult encapsulates the result of a check
 type CheckResult struct {
 	ExitCode  int // ExitCode is the exit code of the check
