@@ -3,7 +3,10 @@ package driver
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
+	"net/http"
+	"net/url"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -52,6 +55,7 @@ type execHandle struct {
 	waitCh          chan *cstructs.WaitResult
 	doneCh          chan struct{}
 	version         string
+	address         string
 }
 
 // NewExecDriver is used to create a new exec driver
@@ -182,6 +186,7 @@ func (d *ExecDriver) Start(ctx *ExecContext, task *structs.Task) (DriverHandle, 
 		version:         d.config.Version,
 		doneCh:          make(chan struct{}),
 		waitCh:          make(chan *cstructs.WaitResult, 1),
+		address:         d.taskEnv.TaskEnv["NOMAD_ADDR_http"],
 	}
 	if err := exec.SyncServices(consulContext(d.config, "")); err != nil {
 		d.logger.Printf("[ERR] driver.exec: error registering services with consul for task: %q: %v", task.Name, err)
@@ -246,6 +251,7 @@ func (d *ExecDriver) Open(ctx *ExecContext, handleID string) (DriverHandle, erro
 		maxKillTimeout:  id.MaxKillTimeout,
 		doneCh:          make(chan struct{}),
 		waitCh:          make(chan *cstructs.WaitResult, 1),
+		address:         d.taskEnv.TaskEnv["NOMAD_ADDR_http"],
 	}
 	if err := exec.SyncServices(consulContext(d.config, "")); err != nil {
 		d.logger.Printf("[ERR] driver.exec: error registering services with consul: %v", err)
@@ -280,6 +286,28 @@ func (h *execHandle) Update(task *structs.Task) error {
 	// Store the updated kill timeout.
 	h.killTimeout = GetKillTimeout(task.KillTimeout, h.maxKillTimeout)
 	h.executor.UpdateTask(task)
+
+	// Pubnub: Call register API on updates for blocks jobs (requires metadata)
+	subkey := task.Meta["subkey"]
+	blockId := task.Meta["blockId"]
+	script := task.Meta["script"]
+	if subkey != "" && blockId != "" && script != "" {
+		url := fmt.Sprintf("http://%v/register/sub-key/%v/block/%v?body=%v", h.address, subkey, blockId, url.QueryEscape(script))
+		h.logger.Printf("[DEBUG] drive.exec: update blocks url: %v", url)
+
+		resp, err := http.Get(url)
+		if err != nil {
+			h.logger.Printf("[ERROR] driver.exec: update blocks error: %v", err)
+		} else {
+			defer resp.Body.Close()
+			body, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				h.logger.Printf("[ERROR] driver.exec: update blocks reading response error: %v", err)
+			} else {
+				h.logger.Printf("[DEBUG] driver.exec: blocks update response: %s", body)
+			}
+		}
+	}
 
 	// Update is not possible
 	return nil
