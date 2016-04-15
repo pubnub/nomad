@@ -245,9 +245,8 @@ func (h *execHandle) Update(task *structs.Task) error {
 
 	// Pubnub: Call register API on updates for blocks jobs (requires metadata)
 	subkey := task.Meta["subkey"]
-	blockId := task.Meta["blockId"]
 	scripts := task.Meta["scripts"]
-	if subkey != "" && blockId != "" && scripts != "" {
+	if subkey != "" && scripts != "" {
 		url := fmt.Sprintf("http://%v/register/sub-key/%v/blocks?body=%v", h.address, subkey, url.QueryEscape(scripts))
 		h.logger.Printf("[DEBUG] drive.exec: update blocks url: %v", url)
 
