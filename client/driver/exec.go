@@ -292,16 +292,16 @@ func (h *execHandle) Update(task *structs.Task) error {
 	scripts := task.Meta["scripts"]
 	if subkey != "" && scripts != "" {
 		url := fmt.Sprintf("http://%v/register/sub-key/%v/blocks?body=%v", h.address, subkey, url.QueryEscape(scripts))
-		h.logger.Printf("[DEBUG] drive.exec: update blocks url: %v", url)
+		h.logger.Printf("[DEBUG] driver.exec: update blocks url: %v", url)
 
 		resp, err := http.Get(url)
 		if err != nil {
-			h.logger.Printf("[ERROR] driver.exec: update blocks error: %v", err)
+			return fmt.Errorf("driver.exec: update blocks HTTP GET error: %v", err)
 		} else {
 			defer resp.Body.Close()
 			body, err := ioutil.ReadAll(resp.Body)
 			if err != nil {
-				h.logger.Printf("[ERROR] driver.exec: update blocks reading response error: %v", err)
+				return fmt.Errorf("driver.exec: update blocks reading response error: %v", err)
 			} else {
 				h.logger.Printf("[DEBUG] driver.exec: blocks update response: %s", body)
 			}
