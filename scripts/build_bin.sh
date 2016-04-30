@@ -35,9 +35,9 @@ wget -q https://storage.googleapis.com/golang/go1.6.linux-${ARCH}.tar.gz
 tar -xf go1.6.linux-${ARCH}.tar.gz
 sudo mv go $SRCROOT
 sudo chmod 775 $SRCROOT
-sudo chown vagrant:vagrant $SRCROOT
+sudo chown ubuntu:ubuntu $SRCROOT
 
-sudo chown -R vagrant:vagrant $SRCPATH 3>/dev/null || true
+sudo chown -R ubuntu:ubuntu $SRCPATH 3>/dev/null || true
 # ^^ silencing errors here because we expect this to fail for the shared folder
 
 cat <<EOF >/tmp/gopath.sh
