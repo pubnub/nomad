@@ -132,7 +132,7 @@ func (d *ExecDriver) Start(ctx *ExecContext, task *structs.Task) (DriverHandle, 
 		Cmd:            command,
 		Args:           driverConfig.Args,
 		FSIsolation:    true,
-		ChrootEnv:      d.config.ClientChrootEnv,
+		ChrootEnv:      d.config.ChrootEnv,
 		ResourceLimits: true,
 		User:           getExecutorUser(task),
 	}, executorCtx)

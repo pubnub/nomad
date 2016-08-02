@@ -101,7 +101,7 @@ type Config struct {
 
 	// A mapping of directories on the host OS to attempt to embed inside each
 	// task's chroot.
-	ClientChrootEnv map[string]string
+	ChrootEnv map[string]string
 
 	// Options provides arbitrary key-value configuration for nomad internals,
 	// like fingerprinters and drivers. The format is:
