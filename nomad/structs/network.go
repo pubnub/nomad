@@ -9,10 +9,10 @@ import (
 
 const (
 	// MinDynamicPort is the smallest dynamic port generated
-	MinDynamicPort = 20000
+	MinDynamicPort = 40001
 
 	// MaxDynamicPort is the largest dynamic port generated
-	MaxDynamicPort = 60000
+	MaxDynamicPort = 65536
 
 	// maxRandPortAttempts is the maximum number of attempt
 	// to assign a random port
