@@ -220,6 +220,21 @@ func (e *UniversalExecutor) runAs(userid string) error {
 	return nil
 }
 
+func getChroot(agentChroot map[string]string, taskChroot map[string]string) map[string]string {
+	if len(agentChroot) <= 0 {
+		return taskChroot
+	}
+	chroot := map[string]string{}
+	for k, v := range taskChroot {
+		for x, _ := range agentChroot {
+			if strings.HasPrefix(k, x) {
+				chroot[k] = v
+			}
+		}
+	}
+	return chroot
+}
+
 // configureChroot configures a chroot
 func (e *UniversalExecutor) configureChroot() error {
 	allocDir := e.ctx.AllocDir
@@ -230,6 +245,10 @@ func (e *UniversalExecutor) configureChroot() error {
 	chroot := chrootEnv
 	if len(e.ctx.ChrootEnv) > 0 {
 		chroot = e.ctx.ChrootEnv
+	}
+
+	if len(e.ctx.Task.ChrootEnv) > 0 {
+		chroot = getChroot(e.ctx.ChrootEnv, e.ctx.Task.ChrootEnv)
 	}
 
 	if err := allocDir.Embed(e.ctx.Task.Name, chroot); err != nil {
