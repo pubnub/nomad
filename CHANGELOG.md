@@ -30,6 +30,7 @@ IMPROVEMENTS:
   * cli: `nomad alloc-status` shows allocation creation time [GH-1623]
   * cli: `nomad node-status` shows node metadata in verbose mode [GH-1841]
   * client: Failed RPCs are retried on all servers [GH-1735]
+  * client: Fingerprint and driver blacklist support [GH-1949]
   * client: Enforce shared allocation directory disk usage [GH-1580]
   * client: Introduce a `secrets/` directory to tasks where sensitive data can
     be written [GH-1681]
@@ -39,9 +40,11 @@ IMPROVEMENTS:
   * driver/docker: Docker For Mac support [GH-1806]
   * driver/docker: Support Docker volumes [GH-1767]
   * driver/docker: Allow Docker logging to be configured [GH-1767]
+  * driver/docker: Add `userns_mode` (`--userns`) support [GH-1940]
   * driver/lxc: Support for LXC containers [GH-1699]
   * driver/rkt: Support network configurations [GH-1862]
   * driver/rkt: Support rkt volumes (rkt >= 1.0.0 required) [GH-1812]
+  * server/rpc: Added an RPC endpoint for retreiving server members [GH-1947]
 
 BUG FIXES:
   * core: Fix case where dead nodes were not properly handled by System
@@ -58,6 +61,7 @@ BUG FIXES:
   * client: Prevent race when persisting state file [GH-1682]
   * client: Retry recoverable errors when starting a driver [GH-1891]
   * client: Fix old services not getting removed from consul on update [GH-1668]
+  * client: Preserve permissions of nested directories while chrooting [GH-1960]
   * client: Folder permissions are dropped even when not running as root [GH-1888]
   * client: Artifact download failures will be retried before failing tasks
     [GH-1558]
@@ -72,6 +76,9 @@ BUG FIXES:
   * client/executor: Prevent race when updating a job configuration with the
     logger [GH-1886]
   * client/fingerprint: Fix inconsistent CPU MHz fingerprinting [GH-1366]
+  * env/aws: Fix an issue with reserved ports causing placement failures
+    [GH-1617] 
+  * discovery: Interpolate all service and check fields [GH-1966]
   * discovery: Fix old services not getting removed from Consul on update
     [GH-1668]
   * discovery: Fix HTTP timeout with Server HTTP health check when there is no
@@ -80,6 +87,7 @@ BUG FIXES:
     the client [GH-1641]
   * discovery/jobspec: Validate service name after interpolation [GH-1852]
   * driver/docker: Fix `local/` directory mount into container [GH-1830]
+  * driver/docker: Interpolate all string configuration variables [GH-1965]
   * jobspec: Tasks without a resource block no longer fail to validate [GH-1864]
   * jobspec: Update HCL to fix panic in JSON parsing [GH-1754]
 

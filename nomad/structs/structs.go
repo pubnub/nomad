@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -357,6 +358,30 @@ type AllocsGetRequest struct {
 type PeriodicForceRequest struct {
 	JobID string
 	WriteRequest
+}
+
+// ServerMembersResponse has the list of servers in a cluster
+type ServerMembersResponse struct {
+	ServerName   string
+	ServerRegion string
+	ServerDC     string
+	Members      []*ServerMember
+	QueryMeta
+}
+
+// ServerMember holds information about a Nomad server agent in a cluster
+type ServerMember struct {
+	Name        string
+	Addr        net.IP
+	Port        uint16
+	Tags        map[string]string
+	Status      string
+	ProtocolMin uint8
+	ProtocolMax uint8
+	ProtocolCur uint8
+	DelegateMin uint8
+	DelegateMax uint8
+	DelegateCur uint8
 }
 
 // DeriveVaultTokenRequest is used to request wrapped Vault tokens for the
@@ -1660,6 +1685,19 @@ func (tg *TaskGroup) Canonicalize(job *Job) {
 
 	for _, task := range tg.Tasks {
 		task.Canonicalize(job, tg)
+	}
+
+	// Add up the disk resources to EphemeralDisk. This is done so that users
+	// are not required to move their disk attribute from resources to
+	// EphemeralDisk section of the job spec in Nomad 0.5
+	// COMPAT 0.4.1 -> 0.5
+	// Remove in 0.6
+	var diskMB int
+	for _, task := range tg.Tasks {
+		diskMB += task.Resources.DiskMB
+	}
+	if diskMB > 0 {
+		tg.EphemeralDisk.SizeMB = diskMB
 	}
 }
 

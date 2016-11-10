@@ -988,6 +988,7 @@ func parseResources(result *structs.Resources, list *ast.ObjectList) error {
 	valid := []string{
 		"cpu",
 		"iops",
+		"disk",
 		"memory",
 		"network",
 	}

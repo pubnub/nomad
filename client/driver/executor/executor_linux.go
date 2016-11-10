@@ -259,6 +259,7 @@ func (e *UniversalExecutor) configureChroot() error {
 	e.ctx.TaskEnv.
 		SetAllocDir(filepath.Join("/", allocdir.SharedAllocName)).
 		SetTaskLocalDir(filepath.Join("/", allocdir.TaskLocal)).
+		SetSecretsDir(filepath.Join("/", allocdir.TaskSecrets)).
 		Build()
 
 	if e.cmd.SysProcAttr == nil {

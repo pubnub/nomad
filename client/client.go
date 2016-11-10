@@ -720,6 +720,8 @@ func (c *Client) reservePorts() {
 func (c *Client) fingerprint() error {
 	whitelist := c.config.ReadStringListToMap("fingerprint.whitelist")
 	whitelistEnabled := len(whitelist) > 0
+	blacklist := c.config.ReadStringListToMap("fingerprint.blacklist")
+
 	c.logger.Printf("[DEBUG] client: built-in fingerprints: %v", fingerprint.BuiltinFingerprints())
 
 	var applied []string
@@ -727,6 +729,11 @@ func (c *Client) fingerprint() error {
 	for _, name := range fingerprint.BuiltinFingerprints() {
 		// Skip modules that are not in the whitelist if it is enabled.
 		if _, ok := whitelist[name]; whitelistEnabled && !ok {
+			skipped = append(skipped, name)
+			continue
+		}
+		// Skip modules that are in the blacklist
+		if _, ok := blacklist[name]; ok {
 			skipped = append(skipped, name)
 			continue
 		}
@@ -754,7 +761,7 @@ func (c *Client) fingerprint() error {
 	}
 	c.logger.Printf("[DEBUG] client: applied fingerprints %v", applied)
 	if len(skipped) != 0 {
-		c.logger.Printf("[DEBUG] client: fingerprint modules skipped due to whitelist: %v", skipped)
+		c.logger.Printf("[DEBUG] client: fingerprint modules skipped due to white/blacklist: %v", skipped)
 	}
 	return nil
 }
@@ -778,9 +785,10 @@ func (c *Client) fingerprintPeriodic(name string, f fingerprint.Fingerprint, d t
 
 // setupDrivers is used to find the available drivers
 func (c *Client) setupDrivers() error {
-	// Build the whitelist of drivers.
+	// Build the white/blacklists of drivers.
 	whitelist := c.config.ReadStringListToMap("driver.whitelist")
 	whitelistEnabled := len(whitelist) > 0
+	blacklist := c.config.ReadStringListToMap("driver.blacklist")
 
 	var avail []string
 	var skipped []string
@@ -789,6 +797,11 @@ func (c *Client) setupDrivers() error {
 		// Skip fingerprinting drivers that are not in the whitelist if it is
 		// enabled.
 		if _, ok := whitelist[name]; whitelistEnabled && !ok {
+			skipped = append(skipped, name)
+			continue
+		}
+		// Skip fingerprinting drivers that are in the blacklist
+		if _, ok := blacklist[name]; ok {
 			skipped = append(skipped, name)
 			continue
 		}
@@ -817,7 +830,7 @@ func (c *Client) setupDrivers() error {
 	c.logger.Printf("[DEBUG] client: available drivers %v", avail)
 
 	if len(skipped) != 0 {
-		c.logger.Printf("[DEBUG] client: drivers skipped due to whitelist: %v", skipped)
+		c.logger.Printf("[DEBUG] client: drivers skipped due to white/blacklist: %v", skipped)
 	}
 
 	return nil
@@ -1185,7 +1198,13 @@ func (c *Client) watchAllocations(updates chan *allocUpdates) {
 			default:
 			}
 
-			if err != noServersErr {
+			// COMPAT: Remove in 0.6. This is to allow the case in which the
+			// servers are not fully upgraded before the clients register. This
+			// can cause the SecretID to be lost
+			if strings.Contains(err.Error(), "node secret ID does not match") {
+				c.logger.Printf("[DEBUG] client: re-registering node as there was a secret ID mismatch: %v", err)
+				c.retryRegisterNode()
+			} else if err != noServersErr {
 				c.logger.Printf("[ERR] client: failed to query for node allocations: %v", err)
 			}
 			retry := c.retryIntv(getAllocRetryIntv)

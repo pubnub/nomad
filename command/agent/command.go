@@ -201,6 +201,12 @@ func (c *Command) readConfig() *Config {
 	config.Version = c.Version
 	config.VersionPrerelease = c.VersionPrerelease
 
+	// Normalize binds, ports, addresses, and advertise
+	if err := config.normalizeAddrs(); err != nil {
+		c.Ui.Error(err.Error())
+		return nil
+	}
+
 	if dev {
 		// Skip validation for dev mode
 		return config
@@ -213,7 +219,7 @@ func (c *Command) readConfig() *Config {
 		}
 		keyfile := filepath.Join(config.DataDir, serfKeyring)
 		if _, err := os.Stat(keyfile); err == nil {
-			c.Ui.Error("WARNING: keyring exists but -encrypt given, using keyring")
+			c.Ui.Warn("WARNING: keyring exists but -encrypt given, using keyring")
 		}
 	}
 
@@ -656,17 +662,13 @@ func (c *Command) setupTelemetry(config *Config) error {
 		cfg.CheckManager.Check.ForceMetricActivation = telConfig.CirconusCheckForceMetricActivation
 		cfg.CheckManager.Check.InstanceID = telConfig.CirconusCheckInstanceID
 		cfg.CheckManager.Check.SearchTag = telConfig.CirconusCheckSearchTag
+		cfg.CheckManager.Check.Tags = telConfig.CirconusCheckTags
+		cfg.CheckManager.Check.DisplayName = telConfig.CirconusCheckDisplayName
 		cfg.CheckManager.Broker.ID = telConfig.CirconusBrokerID
 		cfg.CheckManager.Broker.SelectTag = telConfig.CirconusBrokerSelectTag
 
 		if cfg.CheckManager.API.TokenApp == "" {
 			cfg.CheckManager.API.TokenApp = "nomad"
-		}
-
-		if cfg.CheckManager.Check.InstanceID == "" {
-			if config.NodeName != "" && config.Datacenter != "" {
-				cfg.CheckManager.Check.InstanceID = fmt.Sprintf("%s:%s", config.NodeName, config.Datacenter)
-			}
 		}
 
 		if cfg.CheckManager.Check.SearchTag == "" {

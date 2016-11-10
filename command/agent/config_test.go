@@ -2,6 +2,7 @@ package agent
 
 import (
 	"io/ioutil"
+	"net"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -47,6 +48,8 @@ func TestConfig_Merge(t *testing.T) {
 			CirconusCheckForceMetricActivation: "true",
 			CirconusCheckInstanceID:            "node1:nomadic",
 			CirconusCheckSearchTag:             "service:nomadic",
+			CirconusCheckDisplayName:           "node1:nomadic",
+			CirconusCheckTags:                  "cat1:tag1,cat2:tag2",
 			CirconusBrokerID:                   "0",
 			CirconusBrokerSelectTag:            "dc:dc1",
 		},
@@ -162,6 +165,8 @@ func TestConfig_Merge(t *testing.T) {
 			CirconusCheckForceMetricActivation: "false",
 			CirconusCheckInstanceID:            "node2:nomad",
 			CirconusCheckSearchTag:             "service:nomad",
+			CirconusCheckDisplayName:           "node2:nomad",
+			CirconusCheckTags:                  "cat1:tag1,cat2:tag2",
 			CirconusBrokerID:                   "1",
 			CirconusBrokerSelectTag:            "dc:dc2",
 		},
@@ -539,5 +544,16 @@ func TestResources_ParseReserved(t *testing.T) {
 			t.Fatalf("test case %d: \n\n%#v\n\n%#v", i, r.ParsedReservedPorts, tc.Parsed)
 		}
 
+	}
+}
+
+func TestIsMissingPort(t *testing.T) {
+	_, _, err := net.SplitHostPort("localhost")
+	if missing := isMissingPort(err); !missing {
+		t.Errorf("expected missing port error, but got %v", err)
+	}
+	_, _, err = net.SplitHostPort("localhost:9000")
+	if missing := isMissingPort(err); missing {
+		t.Errorf("expected no error, but got %v", err)
 	}
 }
