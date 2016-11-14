@@ -220,19 +220,24 @@ func (e *UniversalExecutor) runAs(userid string) error {
 	return nil
 }
 
-func getChroot(agentChroot map[string]string, taskChroot map[string]string) map[string]string {
+func isValidChroot(agentChroot map[string]string, taskChroot map[string]string) bool {
 	if len(agentChroot) <= 0 {
-		return taskChroot
+		return true
 	}
-	chroot := map[string]string{}
-	for k, v := range taskChroot {
+	check := false
+	for k, _ := range taskChroot {
+		check = false
 		for x, _ := range agentChroot {
 			if strings.HasPrefix(k, x) {
-				chroot[k] = v
+				check = true
+				continue
 			}
 		}
+		if !check {
+			return false
+		}
 	}
-	return chroot
+	return true
 }
 
 // configureChroot configures a chroot
@@ -248,7 +253,10 @@ func (e *UniversalExecutor) configureChroot() error {
 	}
 
 	if len(e.ctx.Task.ChrootEnv) > 0 {
-		chroot = getChroot(e.ctx.ChrootEnv, e.ctx.Task.ChrootEnv)
+		if !isValidChroot(e.ctx.ChrootEnv, e.ctx.Task.ChrootEnv) {
+			return fmt.Errorf("Task Chroot not subset of Agent Chroot: \n%v\n%v", e.ctx.ChrootEnv, e.ctx.Task.ChrootEnv)
+		}
+		chroot = e.ctx.Task.ChrootEnv
 	}
 
 	if err := allocDir.Embed(e.ctx.Task.Name, chroot); err != nil {
