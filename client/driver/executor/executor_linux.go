@@ -36,6 +36,7 @@ var (
 		"/sbin":           "/sbin",
 		"/usr":            "/usr",
 	}
+	chrootEnvTree = GetChrootEnvTree(chrootEnv)
 
 	// clockTicks is the clocks per second of the machine
 	clockTicks = uint64(system.GetClockTicks())
@@ -220,26 +221,6 @@ func (e *UniversalExecutor) runAs(userid string) error {
 	return nil
 }
 
-func isValidChroot(agentChroot map[string]string, taskChroot map[string]string) bool {
-	if len(agentChroot) <= 0 {
-		return true
-	}
-	check := false
-	for k, _ := range taskChroot {
-		check = false
-		for x, _ := range agentChroot {
-			if strings.HasPrefix(k, x) {
-				check = true
-				continue
-			}
-		}
-		if !check {
-			return false
-		}
-	}
-	return true
-}
-
 // configureChroot configures a chroot
 func (e *UniversalExecutor) configureChroot() error {
 	allocDir := e.ctx.AllocDir
@@ -248,15 +229,12 @@ func (e *UniversalExecutor) configureChroot() error {
 	}
 
 	chroot := chrootEnv
-	if len(e.ctx.ChrootEnv) > 0 {
-		chroot = e.ctx.ChrootEnv
-	}
-
-	if len(e.ctx.Task.ChrootEnv) > 0 {
-		if !isValidChroot(e.ctx.ChrootEnv, e.ctx.Task.ChrootEnv) {
-			return fmt.Errorf("Task Chroot not subset of Agent Chroot: \n%v\n%v", e.ctx.ChrootEnv, e.ctx.Task.ChrootEnv)
+	if e.ctx.ChrootEnv != nil && len(e.ctx.ChrootEnv) > 0 {
+		if !IsValidChroot(chrootEnvTree, e.ctx.ChrootEnv) {
+			return fmt.Errorf("Chroot not subset of Default Chroot: \n%v\n%v", e.ctx.ChrootEnv, chrootEnv)
+		} else {
+			chroot = e.ctx.ChrootEnv
 		}
-		chroot = e.ctx.Task.ChrootEnv
 	}
 
 	if err := allocDir.Embed(e.ctx.Task.Name, chroot); err != nil {
