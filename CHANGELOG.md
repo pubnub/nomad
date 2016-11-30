@@ -1,10 +1,25 @@
-## 0.5.0 (Unreleased)
+## 0.5.1 (Unreleased)
+
+IMPROVEMENTS:
+  * driver/rkt: Support rkt's `--dns=host` and `--dns=none` options [GH-2028]
+
+BUG FIXES:
+  * agent/config: Fix use of IPv6 addresses [GH-2036]
+  * cli: Improve parsing error when a job without a name is specified [GH-2030]
+  * client: Fix race on StreamFramer Destroy which would cause a panic [GH-2007]
+  * driver/docker: Make container exist errors non-retriable by task runner
+    [GH-2033]
+  * driver/rkt: Fix validation of rkt volumes [GH-2027]
+
+## 0.5.0 (November 16, 2016)
 
 __BACKWARDS INCOMPATIBILITIES:__
   * jobspec: Extracted the disk resources from the task to the task group. The
     new block is name `ephemeral_disk`. Nomad will automatically convert
     existing jobs but newly submitted jobs should refactor the disk resource
     [GH-1710, GH-1679]
+  * agent/config: `network_speed` is now an override and not a default value. If
+    the network link speed is not detected a default value is applied.
 
 IMPROVEMENTS:
   * core: Support for gossip encryption [GH-1791]

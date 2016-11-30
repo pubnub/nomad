@@ -421,14 +421,22 @@ func (d *DockerDriver) Start(ctx *ExecContext, task *structs.Task) (DriverHandle
 
 	d.logger.Printf("[INFO] driver.docker: created container %s", container.ID)
 
-	// Start the container
-	err = client.StartContainer(container.ID, container.HostConfig)
-	if err != nil {
-		d.logger.Printf("[ERR] driver.docker: failed to start container %s: %s", container.ID, err)
-		pluginClient.Kill()
-		return nil, fmt.Errorf("Failed to start container %s: %s", container.ID, err)
+	// We don't need to start the container if the container is already running
+	// since we don't create containers which are already present on the host
+	// and are running
+	if !container.State.Running {
+		// Start the container
+		err = client.StartContainer(container.ID, container.HostConfig)
+		if err != nil {
+			d.logger.Printf("[ERR] driver.docker: failed to start container %s: %s", container.ID, err)
+			pluginClient.Kill()
+			return nil, fmt.Errorf("Failed to start container %s: %s", container.ID, err)
+		}
+		d.logger.Printf("[INFO] driver.docker: started container %s", container.ID)
+	} else {
+		d.logger.Printf("[DEBUG] driver.docker: re-attaching to container %s with status %q",
+			container.ID, container.State.String())
 	}
-	d.logger.Printf("[INFO] driver.docker: started container %s", container.ID)
 
 	// Return a driver handle
 	maxKill := d.DriverContext.config.MaxKillTimeout
@@ -907,6 +915,8 @@ func (d *DockerDriver) pullImage(driverConfig *DockerDriverConfig, client *docke
 			authConfigurationKey += strings.Split(driverConfig.ImageName, "/")[0]
 			if authConfiguration, ok := authConfigurations.Configs[authConfigurationKey]; ok {
 				authOptions = authConfiguration
+			} else {
+				d.logger.Printf("[INFO] Failed to find docker auth with key %s", authConfigurationKey)
 			}
 		} else {
 			return fmt.Errorf("Failed to open auth config file: %v, error: %v", authConfigFile, err)
@@ -949,8 +959,7 @@ func (d *DockerDriver) createContainer(config docker.CreateContainerOptions) (*d
 	recoverable := func(err error) *structs.RecoverableError {
 		r := false
 		if strings.Contains(err.Error(), "Client.Timeout exceeded while awaiting headers") ||
-			strings.Contains(err.Error(), "EOF") ||
-			strings.Contains(err.Error(), "container already exists") {
+			strings.Contains(err.Error(), "EOF") {
 			r = true
 		}
 		return structs.NewRecoverableError(err, r)
@@ -964,17 +973,24 @@ CREATE:
 	}
 
 	if strings.Contains(strings.ToLower(err.Error()), "container already exists") {
-		containers, err := client.ListContainers(docker.ListContainersOptions{})
+		containers, err := client.ListContainers(docker.ListContainersOptions{
+			All: true,
+		})
 		if err != nil {
 			d.logger.Printf("[ERR] driver.docker: failed to query list of containers matching name:%s", config.Name)
 			return nil, recoverable(fmt.Errorf("Failed to query list of containers: %s", err))
 		}
 
 		// Delete matching containers
+		// Adding a / infront of the container name since Docker returns the
+		// container names with a / pre-pended to the Nomad generated container names
+		containerName := "/" + config.Name
+		d.logger.Printf("[DEBUG] driver.docker: searching for container name %q to purge", containerName)
 		for _, container := range containers {
+			d.logger.Printf("[DEBUG] driver.docker: listed container %+v", container)
 			found := false
 			for _, name := range container.Names {
-				if name == config.Name {
+				if name == containerName {
 					found = true
 					break
 				}
@@ -984,8 +1000,19 @@ CREATE:
 				continue
 			}
 
+			// Inspect the container and if the container isn't dead then return
+			// the container
+			container, err := client.InspectContainer(container.ID)
+			if err != nil {
+				return nil, recoverable(fmt.Errorf("Failed to inspect container %s: %s", container.ID, err))
+			}
+			if container != nil && (container.State.Running || container.State.FinishedAt.IsZero()) {
+				return container, nil
+			}
+
 			err = client.RemoveContainer(docker.RemoveContainerOptions{
-				ID: container.ID,
+				ID:    container.ID,
+				Force: true,
 			})
 			if err != nil {
 				d.logger.Printf("[ERR] driver.docker: failed to purge container %s", container.ID)
@@ -997,6 +1024,7 @@ CREATE:
 
 		if attempted < 5 {
 			attempted++
+			time.Sleep(1 * time.Second)
 			goto CREATE
 		}
 	}

@@ -229,7 +229,7 @@ func (e *UniversalExecutor) configureChroot() error {
 	}
 
 	chroot := chrootEnv
-	if e.ctx.ChrootEnv != nil && len(e.ctx.ChrootEnv) > 0 {
+	if len(e.ctx.ChrootEnv) > 0 {
 		if !IsValidChroot(chrootEnvTree, e.ctx.ChrootEnv) {
 			return fmt.Errorf("Chroot not subset of Default Chroot: \n%v\n%v", e.ctx.ChrootEnv, chrootEnv)
 		} else {

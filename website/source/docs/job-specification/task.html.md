@@ -62,9 +62,12 @@ job "docs" {
   [Consul][] for service discovery. Nomad automatically registers when a task
   is started and de-registers it when the task dies.
 
-- `user` `(string: <varies>)` - Specifies the user that will run the task. This
-  defaults to the same user as the Nomad client. This can only be set on Linux
-  platforms.
+- `user` `(string: <varies>)` - Specifies the user that will run the task.
+  Defaults to `nobody` for the [`exec`][exec] and [`java`][java] drivers.
+  [Docker][] and [rkt][] images specify their own default users.  This can only
+  be set on Linux platforms, and clients can restrict
+  [which drivers][user_drivers] are allowed to run tasks as
+  [certain users][user_blacklist].
 
 - `vault` <code>([Vault][]: nil)</code> - Specifies the set of Vault policies
   required by the task. This overrides any `vault` block set at the `group` or
@@ -160,3 +163,9 @@ task "server" {
 [resources]: /docs/job-specification/resources.html "Nomad resources Job Specification"
 [logs]: /docs/job-specification/logs.html "Nomad logs Job Specification"
 [service]: /docs/service-discovery/index.html "Nomad Service Discovery"
+[exec]: /docs/drivers/exec.html "Nomad exec Driver"
+[java]: /docs/drivers/java.html "Nomad Java Driver"
+[Docker]: /docs/drivers/docker.html "Nomad Docker Driver"
+[rkt]: /docs/drivers/rkt.html "Nomad rkt Driver"
+[user_drivers]: /docs/agent/configuration/client.html#_quot_user_checked_drivers_quot_
+[user_blacklist]: /docs/agent/configuration/client.html#_quot_user_blacklist_quot_

@@ -9,7 +9,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/go-immutable-radix"
 	"github.com/hashicorp/nomad/client/driver/env"
 	cstructs "github.com/hashicorp/nomad/client/driver/structs"
 	"github.com/hashicorp/nomad/client/testutil"
@@ -34,7 +33,6 @@ func testExecutorContextWithChroot(t *testing.T) *ExecutorContext {
 			"/foobar":           "/does/not/exist",
 		},
 	}
-	ctx.ChrootEnvTree = GetChrootEnvTree(ctx.ChrootEnv)
 	return ctx
 }
 
