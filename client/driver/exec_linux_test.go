@@ -1,7 +1,6 @@
 package driver
 
 import (
-	"fmt"
 	"github.com/hashicorp/nomad/client/allocdir"
 	"github.com/hashicorp/nomad/client/testutil"
 	"github.com/hashicorp/nomad/nomad/mock"
@@ -12,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func mockAllocDir(t *testing.T) (*structs.Task, *allocdir.AllocDir) {
@@ -50,7 +50,7 @@ func TestExec_IsolationWithJobChroot(t *testing.T) {
 
 	execCtx.AllocDir = allocDir
 
-	//defer execCtx.AllocDir.Destroy()
+	defer execCtx.AllocDir.Destroy()
 
 	d := NewExecDriver(driverCtx)
 
@@ -61,39 +61,26 @@ func TestExec_IsolationWithJobChroot(t *testing.T) {
 	if handle == nil {
 		t.Fatalf("missing handle")
 	}
-	
-	/*
-	// Attempt to open
-	handle2, err := d.Open(execCtx, handle.ID())
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if handle2 == nil {
-		t.Fatalf("missing handle")
-	}
-	*/
-	
+
+	time.Sleep(2000 * time.Millisecond)
+
 	expected :=
 		`ld.so.cache
 ld.so.conf
 ld.so.conf.d/`
-	fmt.Printf("%v\n", execCtx.AllocDir.LogDir())
 	file := filepath.Join(execCtx.AllocDir.LogDir(), "web.stdout.0")
-	fmt.Printf("%v\n", file)
 	output, err := ioutil.ReadFile(file)
 	if err != nil {
 		t.Fatalf("Couldn't read file %v", file)
 	}
-	fmt.Printf("%v\n", string(output))
-	fmt.Printf("%d\n", len(output))
+
 	act := strings.TrimSpace(string(output))
 	if act != expected {
 		t.Fatalf("Command output incorrectly: want %v\n got: \n%v", expected, act)
 	}
 	handle.Kill()
-	//handle2.Kill()
 }
-/*
+
 func TestExec_IsolationWithJobChrootCompatibleToAgentChroot(t *testing.T) {
 	testutil.ExecCompatible(t)
 
@@ -126,7 +113,7 @@ func TestExec_IsolationWithJobChrootCompatibleToAgentChroot(t *testing.T) {
 
 	execCtx.AllocDir = allocDir
 
-	//defer execCtx.AllocDir.Destroy()
+	defer execCtx.AllocDir.Destroy()
 
 	d := NewExecDriver(driverCtx)
 
@@ -138,14 +125,7 @@ func TestExec_IsolationWithJobChrootCompatibleToAgentChroot(t *testing.T) {
 		t.Fatalf("missing handle")
 	}
 
-	// Attempt to open
-	handle2, err := d.Open(execCtx, handle.ID())
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if handle2 == nil {
-		t.Fatalf("missing handle")
-	}
+	time.Sleep(2000 * time.Millisecond)
 
 	expected :=
 		`ld.so.conf
@@ -162,7 +142,6 @@ ld.so.conf.d/`
 		t.Fatalf("Command output incorrectly: want %v\n got: \n%v", expected, act)
 	}
 	handle.Kill()
-	handle2.Kill()
 }
 
 func TestExec_IsolationWithJobChrootIncompatibleToAgentChroot(t *testing.T) {
@@ -198,7 +177,7 @@ func TestExec_IsolationWithJobChrootIncompatibleToAgentChroot(t *testing.T) {
 
 	execCtx.AllocDir = allocDir
 
-	//defer execCtx.AllocDir.Destroy()
+	defer execCtx.AllocDir.Destroy()
 
 	d := NewExecDriver(driverCtx)
 
@@ -244,14 +223,7 @@ func TestExec_IsolationWithJobChrootCompatibleToDefaultChroot(t *testing.T) {
 		t.Fatalf("missing handle")
 	}
 
-	// Attempt to open
-	handle2, err := d.Open(execCtx, handle.ID())
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if handle2 == nil {
-		t.Fatalf("missing handle")
-	}
+	time.Sleep(2000 * time.Millisecond)
 
 	expected :=
 		`ld.so.conf
@@ -268,7 +240,6 @@ ld.so.conf.d/`
 		t.Fatalf("Command output incorrectly: want %v\n got: \n%v", expected, act)
 	}
 	handle.Kill()
-	handle2.Kill()
 }
 
 func TestExec_IsolationWithJobChrootIncompatibleToDefaultChroot(t *testing.T) {
@@ -329,7 +300,7 @@ func TestExec_IsolationWithAgentChrootCompatibleToDefaultChroot(t *testing.T) {
 
 	execCtx.AllocDir = allocDir
 
-	//defer execCtx.AllocDir.Destroy()
+	defer execCtx.AllocDir.Destroy()
 
 	d := NewExecDriver(driverCtx)
 
@@ -341,14 +312,7 @@ func TestExec_IsolationWithAgentChrootCompatibleToDefaultChroot(t *testing.T) {
 		t.Fatalf("missing handle")
 	}
 
-	// Attempt to open
-	handle2, err := d.Open(execCtx, handle.ID())
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if handle2 == nil {
-		t.Fatalf("missing handle")
-	}
+	time.Sleep(2000 * time.Millisecond)
 
 	expected :=
 		`ld.so.cache
@@ -365,7 +329,6 @@ ld.so.conf.d/`
 		t.Fatalf("Command output incorrectly: want %v\n got: \n%v", expected, act)
 	}
 	handle.Kill()
-	handle2.Kill()
 }
 
 func TestExec_IsolationWithAgentChrootIncompatibleToDefaultChroot(t *testing.T) {
@@ -402,4 +365,3 @@ func TestExec_IsolationWithAgentChrootIncompatibleToDefaultChroot(t *testing.T) 
 	}
 
 }
-*/
